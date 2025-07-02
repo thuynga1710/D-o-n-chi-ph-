@@ -1,0 +1,557 @@
+
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dự đoán thời gian giao hàng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        #network {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+        }
+        .node-item {
+            background-color: #f3f4f6;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            font-weight: 500;
+        }
+        .highlight-node {
+            background-color: #3b82f6;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-blue-600 mb-2">HỆ THỐNG DỰ ĐOÁN GIAO HÀNG</h1>
+            <p class="text-gray-600">Nhập thông tin đơn hàng để dự đoán thời gian và chi phí</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Network Visualization -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Sơ đồ các điểm giao hàng</h2>
+                <div id="network"></div>
+                <div class="mt-4">
+                    <h3 class="font-medium text-gray-700 mb-2">Danh sách điểm giao nhận:</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        <div class="node-item">A</div>
+                        <div class="node-item">B</div>
+                        <div class="node-item">C</div>
+                        <div class="node-item">D</div>
+                        <div class="node-item">E</div>
+                        <div class="node-item">F</div>
+                        <div class="node-item">G</div>
+                        <div class="node-item">H</div>
+                        <div class="node-item">I</div>
+                        <div class="node-item">J</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Area -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">Thông tin đơn hàng</h2>
+                <form id="deliveryForm" class="space-y-4">
+                    <div>
+                        <label for="pickupPoint" class="block text-sm font-medium text-gray-700 mb-1">Điểm giao hàng</label>
+                        <select id="pickupPoint" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="" selected disabled>Chọn điểm giao</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                            <option value="G">G</option>
+                            <option value="H">H</option>
+                            <option value="I">I</option>
+                            <option value="J">J</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="deliveryPoint" class="block text-sm font-medium text-gray-700 mb-1">Điểm nhận hàng</label>
+                        <select id="deliveryPoint" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="" selected disabled>Chọn điểm nhận</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                            <option value="G">G</option>
+                            <option value="H">H</option>
+                            <option value="I">I</option>
+                            <option value="J">J</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="trafficLevel" class="block text-sm font-medium text-gray-700 mb-1">Mức độ giao thông (1-5)</label>
+                        <select id="trafficLevel" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="" selected disabled>Chọn mức độ</option>
+                            <option value="1">1 - Rất thông thoáng</option>
+                            <option value="2">2 - Thông thoáng</option>
+                            <option value="3">3 - Bình thường</option>
+                            <option value="4">4 - Đông đúc</option>
+                            <option value="5">5 - Ùn tắc</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="weather" class="block text-sm font-medium text-gray-700 mb-1">Thời tiết</label>
+                        <select id="weather" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="" selected disabled>Chọn thời tiết</option>
+                            <option value="nang">Nắng</option>
+                            <option value="mua">Mưa</option>
+                            <option value="suong_mu">Sương mù</option>
+                            <option value="bao">Bão</option>
+                            <option value="mat_me">Mát mẻ</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="packageType" class="block text-sm font-medium text-gray-700 mb-1">Loại hàng</label>
+                        <select id="packageType" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="" selected disabled>Chọn loại hàng</option>
+                            <option value="tai_lieu">Tài liệu</option>
+                            <option value="kien_hang">Kiện hàng</option>
+                            <option value="de_vo">Dễ vỡ</option>
+                            <option value="hang_dong_lanh">Hàng đông lạnh</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="deliveryTime" class="block text-sm font-medium text-gray-700 mb-1">Giờ giao hàng (5-23)</label>
+                        <input type="number" id="deliveryTime" min="5" max="23" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label for="weight" class="block text-sm font-medium text-gray-700 mb-1">Khối lượng hàng hóa (kg)</label>
+                        <input type="number" id="weight" min="0" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Dự đoán thời gian
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden bg-white p-6 rounded-lg shadow mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Kết quả dự đoán</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500">Khoảng cách</p>
+                    <p class="text-xl font-bold" id="distanceDisplay">0 km</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500">Phương tiện đề xuất</p>
+                    <p class="text-xl font-bold" id="vehicleDisplay">Chưa xác định</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500">Thời gian dự kiến</p>
+                    <p class="text-xl font-bold" id="timeDisplay">0 phút</p>
+                </div>
+                <div class="md:col-span-3 bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500">Chi phí vận chuyển</p>
+                    <p class="text-2xl font-bold text-blue-600" id="costDisplay">0 VND</p>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button id="pathButton" class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                    Hiển thị đường đi ngắn nhất
+                </button>
+            </div>
+        </div>
+
+        <!-- Path Visualization -->
+        <div id="pathContainer" class="hidden bg-white p-4 rounded-lg shadow">
+            <h2 class="text-xl font-semibold text-gray-800 mb-2">Đường đi ngắn nhất</h2>
+            <div class="flex items-center mb-4">
+                <div class="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
+                <span id="pathDisplay" class="font-medium"></span>
+            </div>
+            <div id="pathNetwork" style="height: 300px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize network visualization
+        const container = document.getElementById('network');
+        const nodes = new vis.DataSet([
+            {id: 'A', label: 'A', group: 'a'},
+            {id: 'B', label: 'B', group: 'b'},
+            {id: 'C', label: 'C', group: 'c'},
+            {id: 'D', label: 'D', group: 'd'},
+            {id: 'E', label: 'E', group: 'e'},
+            {id: 'F', label: 'F', group: 'f'},
+            {id: 'G', label: 'G', group: 'g'},
+            {id: 'H', label: 'H', group: 'h'},
+            {id: 'I', label: 'I', group: 'i'},
+            {id: 'J', label: 'J', group: 'j'}
+        ]);
+
+        const edges = new vis.DataSet([
+            {from: 'A', to: 'B', label: '17km'},
+            {from: 'A', to: 'C', label: '18km'},
+            {from: 'A', to: 'D', label: '15km'},
+            {from: 'B', to: 'C', label: '15km'},
+            {from: 'B', to: 'E', label: '18km'},
+            {from: 'B', to: 'G', label: '27km'},
+            {from: 'C', to: 'E', label: '10km'},
+            {from: 'C', to: 'F', label: '10km'},
+            {from: 'D', to: 'F', label: '14km'},
+            {from: 'E', to: 'F', label: '4km'},
+            {from: 'E', to: 'G', label: '6km'},
+            {from: 'E', to: 'H', label: '12km'},
+            {from: 'F', to: 'H', label: '17km'},
+            {from: 'F', to: 'I', label: '13km'},
+            {from: 'G', to: 'H', label: '15km'},
+            {from: 'H', to: 'I', label: '3km'},
+            {from: 'H', to: 'J', label: '11km'},
+            {from: 'I', to: 'J', label: '13km'}
+        ]);
+
+        const data = {
+            nodes: nodes,
+            edges: edges
+        };
+
+        const options = {
+            nodes: {
+                shape: 'circle',
+                size: 20,
+                font: {
+                    size: 16
+                },
+                borderWidth: 2
+            },
+            edges: {
+                width: 2,
+                smooth: {
+                    type: 'continuous'
+                },
+                font: {
+                    size: 12,
+                    align: 'middle'
+                },
+                arrows: {
+                    to: {
+                        enabled: false
+                    }
+                }
+            },
+            physics: {
+                barnesHut: {
+                    gravitationalConstant: -1000,
+                    centralGravity: 0.2
+                },
+                minVelocity: 0.75
+            }
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        // Form submission handler
+        document.getElementById('deliveryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const pickupPoint = document.getElementById('pickupPoint').value;
+            const deliveryPoint = document.getElementById('deliveryPoint').value;
+            const trafficLevel = document.getElementById('trafficLevel').value;
+            const weather = document.getElementById('weather').value;
+            const packageType = document.getElementById('packageType').value;
+            const deliveryTime = document.getElementById('deliveryTime').value;
+            const weight = document.getElementById('weight').value;
+            
+            // Validate inputs
+            if (!pickupPoint || !deliveryPoint || !trafficLevel || !weather || !packageType || !deliveryTime || !weight) {
+                alert('Vui lòng điền đầy đủ thông tin!');
+                return;
+            }
+            
+            // Simulate calculation (replace with actual calculation)
+            const distance = calculateDistance(pickupPoint, deliveryPoint);
+            const vehicle = recommendVehicle(weight);
+            const estimatedTime = estimateDeliveryTime(distance, trafficLevel, weather, packageType, deliveryTime, weight);
+            const cost = calculateDeliveryCost(distance, estimatedTime, packageType, weight);
+            
+            // Display results
+            document.getElementById('distanceDisplay').textContent = distance + ' km';
+            document.getElementById('vehicleDisplay').textContent = vehicle;
+            document.getElementById('timeDisplay').textContent = estimatedTime + ' phút';
+            document.getElementById('costDisplay').textContent = cost.toLocaleString() + ' VND';
+            
+            // Show results section
+            document.getElementById('results').classList.remove('hidden');
+            
+            // Highlight nodes
+            highlightNodes(pickupPoint, deliveryPoint);
+        });
+        
+        // Path visualization button handler
+        document.getElementById('pathButton').addEventListener('click', function() {
+            const pickupPoint = document.getElementById('pickupPoint').value;
+            const deliveryPoint = document.getElementById('deliveryPoint').value;
+            
+            if (!pickupPoint || !deliveryPoint) {
+                alert('Vui lòng chọn điểm giao và điểm nhận trước!');
+                return;
+            }
+            
+            visualizeShortestPath(pickupPoint, deliveryPoint);
+        });
+
+        // Priority Queue implementation
+        class PriorityQueue {
+            constructor() {
+                this.items = [];
+            }
+
+            enqueue(element, priority) {
+                this.items.push({ element, priority });
+                this.items.sort((a, b) => a.priority - b.priority);
+            }
+
+            dequeue() {
+                return this.items.shift();
+            }
+
+            isEmpty() {
+                return this.items.length === 0;
+            }
+        }
+
+        const graph = {
+            'A': { 'B': 17, 'C': 18, 'D': 15 },
+            'B': { 'A': 17, 'C': 15, 'E': 18, 'G': 27 },
+            'C': { 'A': 18, 'B': 15, 'E': 10, 'F': 10 },
+            'D': { 'A': 15, 'F': 14 },
+            'E': { 'B': 18, 'C': 10, 'F': 4, 'G': 6, 'H': 12 },
+            'F': { 'C': 10, 'D': 14, 'E': 4, 'H': 17, 'I': 13 },
+            'G': { 'B': 27, 'E': 6, 'H': 15 },
+            'H': { 'E': 12, 'F': 17, 'G': 15, 'I': 3, 'J': 11 },
+            'I': { 'F': 13, 'H': 3, 'J': 13 },
+            'J': { 'H': 11, 'I': 13 }
+        };
+
+        // Helper functions
+        function calculateDistance(from, to) {
+            // Simulated distances (in km)
+            const distances = {
+                'A-B': 17, 'A-C': 18, 'A-D': 15,
+                'B-C': 15, 'B-E': 18, 'B-G': 27,
+                'C-E': 10, 'C-F': 10,
+                'D-F': 14,
+                'E-F': 4, 'E-G': 6, 'E-H': 12,
+                'F-H': 17, 'F-I': 13,
+                'G-H': 15,
+                'H-I': 3, 'H-J': 11,
+                'I-J': 13
+            };
+            
+            const key1 = `${from}-${to}`;
+            const key2 = `${to}-${from}`;
+            
+            return findShortestPath(from, to).reduce((sum, node, i, arr) => {
+                if (i < arr.length - 1) {
+                    const next = arr[i+1];
+                    sum += graph[node][next];
+                }
+                return sum;
+            }, 0);
+        }
+        
+        function recommendVehicle(weight) {
+            weight = parseFloat(weight);
+            if (weight < 20) return 'Xe máy';
+            if (weight <= 100) return 'Xe bán tải';
+            return 'Xe tải';
+        }
+        
+        function estimateDeliveryTime(distance, trafficLevel, weather, packageType, deliveryTime, weight) {
+            // Simulated calculation based on inputs
+            let baseTime = distance * 2;
+            trafficLevel = parseInt(trafficLevel);
+            baseTime += trafficLevel * 5;
+            
+            if (weather === 'mua') baseTime *= 1.2;
+            if (weather === 'suong_mu') baseTime *= 1.3;
+            if (weather === 'bao') baseTime *= 1.5;
+            
+            if (packageType === 'de_vo') baseTime *= 1.1;
+            if (packageType === 'hang_dong_lanh') baseTime *= 1.2;
+            
+            deliveryTime = parseInt(deliveryTime);
+            if (deliveryTime >= 7 && deliveryTime <= 9) baseTime *= 1.3; // Morning rush hour
+            if (deliveryTime >= 16 && deliveryTime <= 19) baseTime *= 1.4; // Evening rush hour
+            
+            weight = parseFloat(weight);
+            if (weight > 50) baseTime *= 1.1;
+            if (weight > 100) baseTime *= 1.2;
+            
+            return Math.round(baseTime);
+        }
+        
+        function calculateDeliveryCost(distance, time, packageType, weight) {
+            // Simulated cost calculation
+            weight = parseFloat(weight);
+            let baseCost = distance * 4500 + time * 180;
+            
+            if (packageType === 'de_vo') baseCost += 5000;
+            if (packageType === 'hang_dong_lanh') baseCost += 10000;
+            
+            if (weight > 50) baseCost *= 1.1;
+            if (weight > 100) baseCost *= 1.2;
+            
+            return Math.round(baseCost);
+        }
+        
+        function highlightNodes(pickupPoint, deliveryPoint) {
+            // Reset all nodes
+            const allNodes = document.querySelectorAll('.node-item');
+            allNodes.forEach(node => {
+                node.classList.remove('highlight-node');
+            });
+            
+            // Highlight selected nodes
+            document.querySelector(`.node-item:contains("${pickupPoint}")`).classList.add('highlight-node');
+            document.querySelector(`.node-item:contains("${deliveryPoint}")`).classList.add('highlight-node');
+        }
+        
+        function findShortestPath(from, to) {
+            const graph = {
+                'A': { 'B': 17, 'C': 18, 'D': 15 },
+                'B': { 'A': 17, 'C': 15, 'E': 18, 'G': 27 },
+                'C': { 'A': 18, 'B': 15, 'E': 10, 'F': 10 },
+                'D': { 'A': 15, 'F': 14 },
+                'E': { 'B': 18, 'C': 10, 'F': 4, 'G': 6, 'H': 12 },
+                'F': { 'C': 10, 'D': 14, 'E': 4, 'H': 17, 'I': 13 },
+                'G': { 'B': 27, 'E': 6, 'H': 15 },
+                'H': { 'E': 12, 'F': 17, 'G': 15, 'I': 3, 'J': 11 },
+                'I': { 'F': 13, 'H': 3, 'J': 13 },
+                'J': { 'H': 11, 'I': 13 }
+            };
+
+            const distances = {};
+            const previous = {};
+            const queue = new PriorityQueue();
+
+            for (const vertex in graph) {
+                distances[vertex] = Infinity;
+                previous[vertex] = null;
+                queue.enqueue(vertex, Infinity);
+            }
+            distances[from] = 0;
+            queue.enqueue(from, 0);
+
+            while (!queue.isEmpty()) {
+                const currentVertex = queue.dequeue().element;
+
+                if (currentVertex === to) {
+                    const path = [];
+                    let temp = to;
+                    while (temp) {
+                        path.push(temp);
+                        temp = previous[temp];
+                    }
+                    return path.reverse();
+                }
+
+                for (const neighbor in graph[currentVertex]) {
+                    const alt = distances[currentVertex] + graph[currentVertex][neighbor];
+                    if (alt < distances[neighbor]) {
+                        distances[neighbor] = alt;
+                        previous[neighbor] = currentVertex;
+                        queue.enqueue(neighbor, alt);
+                    }
+                }
+            }
+            return [];
+        }
+
+        function visualizeShortestPath(from, to) {
+            const path = findShortestPath(from, to);
+            
+            if (path.length === 0) {
+                alert('Không tìm thấy đường đi giữa ' + from + ' và ' + to);
+                return;
+            }
+            
+            // Display path
+            document.getElementById('pathDisplay').textContent = path.join(' → ');
+            
+            // Create path visualization
+            const pathNodes = new vis.DataSet(path.map(node => ({
+                id: node,
+                label: node,
+                color: {
+                    background: node === from || node === to ? '#3b82f6' : '#10b981',
+                    border: '#111827'
+                },
+                font: {
+                    color: node === from || node === to ? '#ffffff' : '#111827'
+                }
+            })));
+            
+            const pathEdges = new vis.DataSet([]);
+            for (let i = 0; i < path.length - 1; i++) {
+                pathEdges.add({
+                    from: path[i],
+                    to: path[i+1],
+                    width: 3,
+                    color: '#10b981',
+                    smooth: false,
+                    arrows: {
+                        to: {
+                            enabled: true,
+                            scaleFactor: 0.5
+                        }
+                    }
+                });
+            }
+            
+            const pathData = {
+                nodes: pathNodes,
+                edges: pathEdges
+            };
+            
+            const pathOptions = {
+                nodes: {
+                    shape: 'circle',
+                    size: 25,
+                    font: {
+                        size: 16
+                    },
+                    borderWidth: 2
+                },
+                edges: {
+                    smooth: false
+                },
+                physics: false,
+                layout: {
+                    randomSeed: 42 // For consistent layout
+                }
+            };
+            
+            const pathNetworkContainer = document.getElementById('pathNetwork');
+            pathNetworkContainer.innerHTML = '';
+            const pathNetwork = new vis.Network(pathNetworkContainer, pathData, pathOptions);
+            
+            // Show path container
+            document.getElementById('pathContainer').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
